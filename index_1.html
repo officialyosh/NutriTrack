@@ -1,0 +1,1599 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NutriTrack — Kalorien &amp; Rezepte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F5F6FA;
+    --surface:#FFFFFF;
+    --ink:#14161A;
+    --muted:#8A8F98;
+    --muted-soft:#C7CAD1;
+    --line:#EEEFF3;
+    --cal-a:#FF6B5B;
+    --cal-b:#FFB648;
+    --protein:#FF4D6D;
+    --protein-soft:#FFE1E7;
+    --carbs:#FFB020;
+    --carbs-soft:#FFF1D6;
+    --fat:#3E8EF7;
+    --fat-soft:#DEEBFF;
+    --accent:#2FBF71;
+    --accent-soft:#DFF6E9;
+    --water:#22B8CF;
+    --water-b:#63D9E8;
+    --water-soft:#DEF7FA;
+    --radius-lg:22px;
+    --radius-md:14px;
+    --radius-sm:10px;
+    --shadow:0 8px 24px -8px rgba(20,22,26,0.10);
+    --carbs-ink:#9A6B00;
+    --water-ink:#0E7C8F;
+  }
+  .tracker-root[data-theme="dark"]{
+    --bg:#101215;
+    --surface:#1B1E23;
+    --ink:#F2F3F5;
+    --muted:#9AA0AA;
+    --muted-soft:#4B505A;
+    --line:#2A2E35;
+    --protein-soft:rgba(255,77,109,0.16);
+    --carbs-soft:rgba(255,176,32,0.16);
+    --fat-soft:rgba(62,142,247,0.16);
+    --water-soft:rgba(34,184,207,0.16);
+    --accent-soft:rgba(47,191,113,0.16);
+    --carbs-ink:#FFCB66;
+    --water-ink:#7FE1EE;
+    --shadow:0 10px 26px -10px rgba(0,0,0,0.6);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  .tracker-root{
+    font-family:'Plus Jakarta Sans', sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    min-height:100vh;
+    padding:1.75rem 1.1rem 4rem;
+    -webkit-font-smoothing:antialiased;
+    transition:background .25s ease, color .25s ease;
+  }
+  .wrap{max-width:960px;margin:0 auto;}
+
+  /* ---------- Top bar ---------- */
+  .app-top{
+    display:flex;flex-direction:column;align-items:center;gap:1.1rem;
+    margin-bottom:1.6rem;
+  }
+  .brand-row{
+    display:flex;align-items:center;justify-content:space-between;width:100%;
+  }
+  .brand{
+    display:flex;align-items:center;gap:.5rem;
+  }
+  .brand .dot{
+    width:10px;height:10px;border-radius:50%;
+    background:linear-gradient(135deg,var(--cal-a),var(--cal-b));
+  }
+  .brand span{font-weight:800;font-size:1.05rem;letter-spacing:-.01em;}
+  .theme-toggle{
+    border:none;background:var(--surface);color:var(--ink);
+    width:2.3rem;height:2.3rem;border-radius:50%;cursor:pointer;
+    box-shadow:var(--shadow);font-size:1.05rem;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .theme-toggle:hover{background:var(--ink);color:var(--bg);}
+
+  .tabs{
+    display:flex;flex-wrap:wrap;background:var(--surface);padding:.3rem;border-radius:999px;
+    box-shadow:var(--shadow);gap:.2rem;justify-content:center;
+  }
+  .tab-btn{
+    border:none;background:none;cursor:pointer;
+    font-family:inherit;font-weight:700;font-size:.88rem;
+    padding:.55rem 1.15rem;border-radius:999px;color:var(--muted);
+    transition:background .18s, color .18s;
+  }
+  .tab-btn.active{
+    background:var(--ink);color:#fff;
+  }
+  .tab-btn:focus-visible{outline:2.5px solid var(--fat);outline-offset:2px;}
+
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  /* ---------- Date nav ---------- */
+  .date-nav{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:1.25rem;
+  }
+  .date-nav .mid{display:flex;align-items:center;gap:.6rem;}
+  .date-nav h1{
+    font-size:1.02rem;font-weight:700;margin:0;text-transform:capitalize;
+    min-width:170px;text-align:center;
+  }
+  .nav-btn{
+    border:none;background:var(--surface);color:var(--ink);
+    width:2.2rem;height:2.2rem;border-radius:50%;cursor:pointer;
+    box-shadow:var(--shadow);font-size:1rem;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .nav-btn:hover{background:var(--ink);color:#fff;}
+  .nav-btn:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible{
+    outline:2.5px solid var(--fat);outline-offset:2px;
+  }
+  .pill-btn{
+    font-family:inherit;font-weight:700;font-size:.82rem;
+    background:var(--surface);color:var(--ink);border:none;
+    padding:.5rem .95rem;border-radius:999px;cursor:pointer;box-shadow:var(--shadow);
+  }
+  .pill-btn:hover{background:var(--ink);color:#fff;}
+
+  /* ---------- Ring dashboard ---------- */
+  .ring-card{
+    background:var(--surface);border-radius:var(--radius-lg);
+    box-shadow:var(--shadow);padding:1.6rem 1.4rem 1.4rem;
+    display:flex;flex-direction:column;align-items:center;
+    margin-bottom:1rem;
+  }
+  .ring-wrap{position:relative;width:190px;height:190px;margin-bottom:.4rem;}
+  .ring-wrap svg{width:100%;height:100%;transform:rotate(-90deg);}
+  .ring-track{fill:none;stroke:var(--line);stroke-width:14;}
+  .ring-fill{fill:none;stroke-width:14;stroke-linecap:round;
+    transition:stroke-dashoffset .4s ease;}
+  .ring-center{
+    position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;
+  }
+  .ring-center .val{font-size:2.05rem;font-weight:800;line-height:1;letter-spacing:-.02em;}
+  .ring-center .val.over{color:var(--protein);}
+  .ring-center .unit{font-size:.78rem;color:var(--muted);font-weight:600;margin-top:.2rem;}
+  .ring-sub{font-size:.88rem;color:var(--muted);font-weight:600;margin-top:.15rem;}
+  .ring-sub b{color:var(--ink);}
+  .ring-sub.over b{color:var(--protein);}
+
+  .macro-row{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem;
+    width:100%;margin-top:1.3rem;
+  }
+  .macro-chip{
+    background:var(--bg);border-radius:var(--radius-md);
+    padding:.75rem .7rem;display:flex;flex-direction:column;gap:.4rem;
+  }
+  .macro-chip .m-top{display:flex;align-items:center;justify-content:space-between;}
+  .macro-chip .m-label{font-size:.75rem;font-weight:700;color:var(--muted);}
+  .macro-chip .m-swatch{width:8px;height:8px;border-radius:50%;}
+  .macro-chip .m-val{font-size:1rem;font-weight:800;}
+  .macro-chip .m-goal{font-size:.72rem;color:var(--muted);font-weight:600;}
+  .m-bar-track{height:6px;background:var(--line);border-radius:99px;overflow:hidden;}
+  .m-bar-fill{height:100%;border-radius:99px;transition:width .3s;}
+
+  /* ---------- Water card ---------- */
+  .water-card{
+    background:var(--surface);border-radius:var(--radius-lg);
+    box-shadow:var(--shadow);padding:1.2rem 1.3rem 1.3rem;margin-bottom:1.1rem;
+  }
+  .water-head{display:flex;align-items:center;gap:.7rem;margin-bottom:.75rem;}
+  .water-icon{
+    width:42px;height:42px;border-radius:14px;background:var(--water-soft);
+    display:flex;align-items:center;justify-content:center;font-size:1.25rem;flex:none;
+  }
+  .water-title{font-weight:800;font-size:.95rem;}
+  .water-sub{font-size:.82rem;color:var(--muted);font-weight:600;}
+  .water-bar-track{height:12px;background:var(--water-soft);border-radius:99px;overflow:hidden;}
+  .water-bar-fill{
+    height:100%;border-radius:99px;transition:width .35s ease;
+    background:linear-gradient(90deg,var(--water),var(--water-b));
+  }
+  .water-praise{
+    font-size:.85rem;font-weight:800;color:var(--accent);
+    margin:.65rem 0 0;min-height:1.1em;
+    display:flex;align-items:center;gap:.35rem;
+  }
+  .water-actions{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.9rem;align-items:center;}
+  .water-qty-btn{
+    font-family:inherit;font-weight:700;font-size:.82rem;
+    background:var(--water-soft);color:var(--water-ink);border:none;
+    padding:.5rem .85rem;border-radius:999px;cursor:pointer;
+  }
+  .water-qty-btn:hover{background:var(--water);color:#fff;}
+  .water-reset-btn{
+    font-family:inherit;font-weight:700;font-size:.78rem;
+    background:none;color:var(--muted);border:none;cursor:pointer;
+    padding:.5rem .4rem;margin-left:auto;
+  }
+  .water-reset-btn:hover{color:var(--protein);}
+
+  /* ---------- Add entry ---------- */
+  .add-card{
+    background:var(--surface);border-radius:var(--radius-lg);
+    box-shadow:var(--shadow);padding:1.2rem 1.3rem 1.3rem;margin-bottom:1.1rem;
+  }
+  .add-card h2{font-size:1rem;font-weight:800;margin:0 0 .35rem;}
+  .add-hint{font-size:.8rem;color:var(--muted);margin:0 0 .85rem;}
+  .food-match-info{font-size:.8rem;font-weight:700;color:var(--accent);margin:.6rem 0 0;min-height:1.1em;}
+  .food-match-info.unknown{color:var(--fat);}
+  .add-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));
+    gap:.6rem .7rem;
+    align-items:end;
+  }
+  .field-name{ grid-column:span 2; }
+  @media (max-width:480px){ .field-name{ grid-column:span 1; } }
+  .add-submit-row{ grid-column:1 / -1; display:flex; justify-content:flex-end; margin-top:.2rem; }
+  .field{display:flex;flex-direction:column;gap:.3rem;}
+  .field label{font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;}
+  .field input, .field select{
+    font-family:inherit;border:1.5px solid var(--line);border-radius:var(--radius-sm);
+    padding:.55rem .6rem;font-size:.9rem;background:var(--bg);color:var(--ink);
+  }
+  .field input:focus, .field select:focus{border-color:var(--ink);}
+  .add-submit{
+    background:var(--ink);color:#fff;border:none;padding:.6rem 1rem;
+    border-radius:var(--radius-sm);font-family:inherit;font-weight:700;font-size:.85rem;
+    cursor:pointer;white-space:nowrap;
+  }
+  .add-submit:hover{opacity:.85;}
+  .form-msg{font-size:.8rem;color:var(--protein);margin:.5rem 0 0;min-height:1em;}
+
+  /* ---------- Meal groups ---------- */
+  .meal-group{
+    background:var(--surface);border-radius:var(--radius-lg);
+    box-shadow:var(--shadow);padding:1.1rem 1.2rem;margin-bottom:.9rem;
+  }
+  .meal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:.55rem;}
+  .meal-head h3{font-size:.92rem;font-weight:800;margin:0;}
+  .meal-head .subtotal{font-size:.85rem;font-weight:700;color:var(--muted);}
+  .entry-row{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:.55rem 0;border-top:1px solid var(--line);gap:.7rem;
+  }
+  .meal-group .entry-row:first-of-type{border-top:none;}
+  .entry-main{display:flex;flex-direction:column;}
+  .entry-name{font-weight:700;font-size:.94rem;}
+  .entry-meta{font-size:.76rem;color:var(--muted);font-weight:600;}
+  .entry-right{display:flex;align-items:center;gap:.6rem;}
+  .entry-kcal{font-weight:800;font-size:.94rem;}
+  .del-btn{
+    background:var(--bg);border:none;color:var(--muted);
+    width:1.7rem;height:1.7rem;border-radius:50%;cursor:pointer;font-size:1rem;line-height:1;
+  }
+  .del-btn:hover{background:var(--protein-soft);color:var(--protein);}
+  .empty-note{font-size:.85rem;color:var(--muted-soft);font-weight:600;padding:.3rem 0;}
+
+  /* ---------- Settings modal ---------- */
+  .modal-backdrop{
+    position:fixed;inset:0;background:rgba(20,22,26,.45);
+    display:none;align-items:center;justify-content:center;z-index:50;padding:1rem;
+  }
+  .modal-backdrop.open{display:flex;}
+  .modal{
+    background:var(--surface);border-radius:var(--radius-lg);max-width:380px;width:100%;
+    padding:1.5rem 1.5rem 1.6rem;box-shadow:0 20px 50px -12px rgba(20,22,26,.35);
+  }
+  .modal h2{font-size:1.1rem;font-weight:800;margin:0 0 .2rem;}
+  .modal p.sub{font-size:.85rem;color:var(--muted);margin:0 0 1.1rem;}
+  .modal .field{margin-bottom:.75rem;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:.6rem;margin-top:1rem;}
+
+  .status-line{
+    font-size:.78rem;color:var(--muted-soft);text-align:center;margin-top:2rem;font-weight:600;
+  }
+
+  /* ---------- Recipes tab ---------- */
+  .recipes-head{margin-bottom:1.1rem;}
+  .recipes-head h2{font-size:1.15rem;font-weight:800;margin:0 0 .3rem;}
+  .recipes-head p{font-size:.88rem;color:var(--muted);margin:0;max-width:520px;}
+
+  .today-section{margin-bottom:1.7rem;}
+  .today-section h3{font-size:.78rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 .7rem;}
+  .today-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.9rem;}
+  @media (max-width:820px){ .today-grid{grid-template-columns:1fr;} }
+  .today-card{
+    position:relative;background:var(--surface);border-radius:var(--radius-lg);
+    box-shadow:var(--shadow);padding:1.1rem 1.1rem 1.2rem;
+    border:1.5px solid transparent;
+  }
+  .today-card .meal-tag{
+    font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);
+  }
+  .today-card .type-tag{
+    display:inline-block;font-size:.68rem;font-weight:800;padding:.18rem .5rem;border-radius:999px;margin-left:.4rem;
+  }
+  .type-tag.suess{background:var(--carbs-soft);color:var(--carbs-ink);}
+  .type-tag.salzig{background:var(--fat-soft);color:var(--fat);}
+  .today-card .recipe-title{margin-top:.5rem;}
+
+  .library-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:.8rem;}
+  .library-head h3{font-size:.78rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0;}
+  .library-head span{font-size:.78rem;color:var(--muted-soft);font-weight:600;}
+
+  .recipe-grid{
+    display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;
+  }
+  @media (max-width:700px){ .recipe-grid{grid-template-columns:1fr;} }
+  .recipe-card{
+    background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow);
+    padding:1.15rem 1.2rem 1.25rem;
+  }
+  .recipe-top{display:flex;gap:.8rem;align-items:flex-start;}
+  .recipe-icon{
+    width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;
+    font-size:1.5rem;flex:none;
+  }
+  .recipe-title{font-size:1rem;font-weight:800;margin:0 0 .2rem;}
+  .recipe-desc{font-size:.82rem;color:var(--muted);margin:0;line-height:1.4;}
+  .recipe-badges{display:flex;gap:.4rem;margin-top:.7rem;flex-wrap:wrap;}
+  .badge{
+    font-size:.72rem;font-weight:700;padding:.3rem .55rem;border-radius:999px;
+  }
+  .badge.kcal{background:linear-gradient(135deg,var(--cal-a),var(--cal-b));color:#fff;}
+  .badge.protein{background:var(--protein-soft);color:var(--protein);}
+  .badge.carbs{background:var(--carbs-soft);color:var(--carbs-ink);}
+  .badge.fat{background:var(--fat-soft);color:var(--fat);}
+
+  .recipe-toggle{
+    background:none;border:none;color:var(--ink);font-family:inherit;
+    font-weight:700;font-size:.82rem;cursor:pointer;padding:.7rem 0 0;
+    display:flex;align-items:center;gap:.35rem;
+  }
+  .recipe-toggle .chev{transition:transform .2s;}
+  .recipe-toggle.open .chev{transform:rotate(180deg);}
+  .recipe-detail{display:none;margin-top:.6rem;padding-top:.7rem;border-top:1px solid var(--line);}
+  .recipe-detail.open{display:block;}
+  .recipe-detail h4{font-size:.78rem;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);margin:0 0 .35rem;}
+  .recipe-detail ul, .recipe-detail ol{margin:0 0 .8rem;padding-left:1.1rem;font-size:.86rem;line-height:1.55;}
+  .recipe-add-row{display:flex;gap:.5rem;align-items:center;}
+  .recipe-add-row select{
+    font-family:inherit;border:1.5px solid var(--line);border-radius:var(--radius-sm);
+    padding:.45rem .55rem;font-size:.82rem;background:var(--bg);color:var(--ink);flex:1;
+  }
+  .recipe-add-btn{
+    background:var(--accent);color:#fff;border:none;padding:.5rem .85rem;border-radius:var(--radius-sm);
+    font-family:inherit;font-weight:700;font-size:.82rem;cursor:pointer;white-space:nowrap;
+  }
+  .recipe-add-btn:hover{opacity:.85;}
+  .recipe-added-note{font-size:.78rem;color:var(--accent);font-weight:700;margin-top:.4rem;min-height:1em;}
+
+  /* ---------- Tips tab ---------- */
+  .tip-hero{
+    background:linear-gradient(135deg,var(--accent-soft),var(--surface));
+    border-radius:var(--radius-lg);box-shadow:var(--shadow);
+    padding:1.3rem 1.4rem;display:flex;gap:1rem;align-items:flex-start;
+  }
+  .tip-hero .tip-icon{
+    width:52px;height:52px;border-radius:16px;background:var(--surface);
+    display:flex;align-items:center;justify-content:center;font-size:1.6rem;flex:none;
+    box-shadow:var(--shadow);
+  }
+  .tip-hero h4{font-size:1.02rem;font-weight:800;margin:0 0 .3rem;}
+  .tip-hero p{font-size:.9rem;color:var(--muted);margin:0;line-height:1.5;}
+  .tip-card{
+    background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow);
+    padding:1.05rem 1.15rem;display:flex;gap:.85rem;align-items:flex-start;
+  }
+  .tip-card .tip-icon-sm{
+    width:38px;height:38px;border-radius:12px;background:var(--accent-soft);
+    display:flex;align-items:center;justify-content:center;font-size:1.15rem;flex:none;
+  }
+  .tip-card h4{font-size:.9rem;font-weight:800;margin:0 0 .2rem;}
+  .tip-card p{font-size:.82rem;color:var(--muted);margin:0;line-height:1.5;}
+
+  /* ---------- Calendar tab ---------- */
+  .cal-nav{display:flex;align-items:center;justify-content:center;gap:1.1rem;margin-bottom:.9rem;}
+  .cal-nav h3{font-size:1rem;font-weight:800;margin:0;text-transform:capitalize;min-width:150px;text-align:center;}
+  .cal-legend{
+    display:flex;flex-wrap:wrap;gap:.9rem;justify-content:center;
+    margin-bottom:1.1rem;font-size:.78rem;color:var(--muted);font-weight:600;
+  }
+  .cal-legend .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:.35rem;vertical-align:middle;}
+  .dot-good{background:var(--accent);}
+  .dot-over{background:var(--protein);}
+  .dot-under{background:var(--fat);}
+  .dot-none{background:var(--muted-soft);}
+  .cal-grid-head{
+    display:grid;grid-template-columns:repeat(7,1fr);gap:.4rem;
+    font-size:.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;
+    letter-spacing:.03em;text-align:center;margin-bottom:.4rem;
+  }
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:.4rem;}
+  .cal-cell{
+    position:relative;aspect-ratio:1/1;border:none;background:var(--surface);
+    border-radius:var(--radius-md);box-shadow:var(--shadow);cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.15rem;
+    font-family:inherit;color:var(--ink);padding:.2rem;
+  }
+  .cal-cell:hover{outline:2px solid var(--ink);outline-offset:1px;}
+  .cal-cell.cal-empty{background:transparent;box-shadow:none;cursor:default;}
+  .cal-cell.cal-today{outline:2px solid var(--fat);outline-offset:1px;}
+  .cal-daynum{font-size:.8rem;font-weight:700;}
+  .cal-kcal{font-size:.6rem;color:var(--muted);font-weight:700;}
+  .cal-cell .dot{width:6px;height:6px;border-radius:50%;position:absolute;bottom:6px;}
+  .cal-loading{text-align:center;font-size:.82rem;color:var(--muted);font-weight:600;padding:1rem 0;}
+</style>
+</head>
+<body>
+<div class="tracker-root">
+  <div class="wrap">
+
+    <div class="app-top">
+      <div class="brand-row">
+        <div class="brand"><span class="dot"></span><span>NutriTrack</span></div>
+        <button class="theme-toggle" id="themeToggle" aria-label="Hell-/Dunkelmodus umschalten">🌙</button>
+      </div>
+      <div class="tabs" role="tablist">
+        <button class="tab-btn active" id="tabTrackerBtn" role="tab" aria-selected="true">Tracker</button>
+        <button class="tab-btn" id="tabRecipesBtn" role="tab" aria-selected="false">Rezepte</button>
+        <button class="tab-btn" id="tabTippsBtn" role="tab" aria-selected="false">Tipps</button>
+        <button class="tab-btn" id="tabCalendarBtn" role="tab" aria-selected="false">Kalender</button>
+      </div>
+    </div>
+
+    <!-- ===== Tracker panel ===== -->
+    <section class="panel active" id="panelTracker">
+      <div class="date-nav">
+        <button class="nav-btn" id="prevDay" aria-label="Vorheriger Tag">‹</button>
+        <div class="mid"><h1 id="dateHeading">—</h1></div>
+        <button class="nav-btn" id="nextDay" aria-label="Nächster Tag">›</button>
+      </div>
+      <div style="display:flex;justify-content:center;gap:.5rem;margin-bottom:1.3rem;">
+        <button class="pill-btn" id="todayBtn">Heute</button>
+        <button class="pill-btn" id="settingsBtn">Ziele bearbeiten</button>
+      </div>
+
+      <div class="ring-card">
+        <div class="ring-wrap">
+          <svg viewBox="0 0 190 190">
+            <defs>
+              <linearGradient id="calGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="var(--cal-a)"/>
+                <stop offset="100%" stop-color="var(--cal-b)"/>
+              </linearGradient>
+            </defs>
+            <circle class="ring-track" cx="95" cy="95" r="82"></circle>
+            <circle class="ring-fill" id="ringFill" cx="95" cy="95" r="82" stroke="url(#calGradient)"></circle>
+          </svg>
+          <div class="ring-center">
+            <div class="val" id="ringVal">0</div>
+            <div class="unit">von <span id="ringGoal">2400</span> kcal</div>
+          </div>
+        </div>
+        <div class="ring-sub" id="ringSub">Noch <b>2400 kcal</b> übrig</div>
+
+        <div class="macro-row">
+          <div class="macro-chip">
+            <div class="m-top"><span class="m-label">PROTEIN</span><span class="m-swatch" style="background:var(--protein)"></span></div>
+            <div class="m-val" id="mvProtein">0 g</div>
+            <div class="m-bar-track"><div class="m-bar-fill" id="mbProtein" style="background:var(--protein);width:0%"></div></div>
+            <div class="m-goal" id="mgProtein">Ziel 150 g</div>
+          </div>
+          <div class="macro-chip">
+            <div class="m-top"><span class="m-label">CARBS</span><span class="m-swatch" style="background:var(--carbs)"></span></div>
+            <div class="m-val" id="mvCarbs">0 g</div>
+            <div class="m-bar-track"><div class="m-bar-fill" id="mbCarbs" style="background:var(--carbs);width:0%"></div></div>
+            <div class="m-goal" id="mgCarbs">Ziel 270 g</div>
+          </div>
+          <div class="macro-chip">
+            <div class="m-top"><span class="m-label">FETT</span><span class="m-swatch" style="background:var(--fat)"></span></div>
+            <div class="m-val" id="mvFat">0 g</div>
+            <div class="m-bar-track"><div class="m-bar-fill" id="mbFat" style="background:var(--fat);width:0%"></div></div>
+            <div class="m-goal" id="mgFat">Ziel 80 g</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="water-card">
+        <div class="water-head">
+          <div class="water-icon">💧</div>
+          <div>
+            <div class="water-title">Wasser</div>
+            <div class="water-sub" id="waterSub">0 / 3000 ml</div>
+          </div>
+        </div>
+        <div class="water-bar-track"><div class="water-bar-fill" id="waterBarFill" style="width:0%"></div></div>
+        <p class="water-praise" id="waterPraise"></p>
+        <div class="water-actions">
+          <button type="button" class="water-qty-btn" data-amt="200">+200 ml</button>
+          <button type="button" class="water-qty-btn" data-amt="330">+330 ml</button>
+          <button type="button" class="water-qty-btn" data-amt="500">+500 ml</button>
+          <button type="button" class="water-reset-btn" id="waterResetBtn">Zurücksetzen</button>
+        </div>
+      </div>
+
+      <div class="add-card">
+        <h2>Eintrag hinzufügen</h2>
+        <p class="add-hint">Lebensmittel auswählen und Menge in Gramm eingeben — Kalorien &amp; Nährwerte werden automatisch berechnet.</p>
+        <form id="addForm" autocomplete="off">
+          <div class="add-grid">
+            <div class="field field-name">
+              <label for="fName">Lebensmittel</label>
+              <input type="text" id="fName" list="foodDatalist" placeholder="z. B. Haferflocken" required>
+              <datalist id="foodDatalist"></datalist>
+            </div>
+            <div class="field">
+              <label for="fAmount">Menge (g)</label>
+              <input type="number" id="fAmount" min="0" step="1" placeholder="z. B. 150">
+            </div>
+            <div class="field">
+              <label for="fKcal">Kcal</label>
+              <input type="number" id="fKcal" min="0" step="1" required>
+            </div>
+            <div class="field">
+              <label for="fProtein">Protein g</label>
+              <input type="number" id="fProtein" min="0" step="0.1">
+            </div>
+            <div class="field">
+              <label for="fCarbs">Carbs g</label>
+              <input type="number" id="fCarbs" min="0" step="0.1">
+            </div>
+            <div class="field">
+              <label for="fFat">Fett g</label>
+              <input type="number" id="fFat" min="0" step="0.1">
+            </div>
+            <div class="field">
+              <label for="fMeal">Mahlzeit</label>
+              <select id="fMeal">
+                <option value="fruehstueck">Frühstück</option>
+                <option value="mittag">Mittagessen</option>
+                <option value="abend">Abendessen</option>
+                <option value="snack">Snacks</option>
+              </select>
+            </div>
+            <div class="add-submit-row">
+              <button type="submit" class="add-submit">Hinzufügen</button>
+            </div>
+          </div>
+          <p class="food-match-info" id="foodMatchInfo"></p>
+          <p class="form-msg" id="formMsg"></p>
+        </form>
+      </div>
+
+      <div id="mealGroups"></div>
+      <p class="status-line" id="statusLine">Wird geladen …</p>
+    </section>
+
+    <!-- ===== Recipes panel ===== -->
+    <section class="panel" id="panelRecipes">
+      <div class="recipes-head">
+        <h2>Rezepte zum Zunehmen</h2>
+        <p>Kalorien- und proteinreiche Gerichte für 2400 kcal und 150 g Eiweiß. Die Auswahl wechselt jeden Tag und variiert zwischen Süßem und Salzigem für Frühstück, Mittag und Abendessen.</p>
+      </div>
+
+      <div class="today-section">
+        <h3>Heute für dich</h3>
+        <div class="today-grid" id="todayGrid"></div>
+      </div>
+
+      <div class="library-head">
+        <h3>Alle Rezepte entdecken</h3>
+        <span id="libraryCount"></span>
+      </div>
+      <div class="recipe-grid" id="recipeGrid"></div>
+    </section>
+
+    <!-- ===== Tipps panel ===== -->
+    <section class="panel" id="panelTipps">
+      <div class="recipes-head">
+        <h2>Ernährungstipps</h2>
+        <p>Ein neuer Tipp für Frühstück, Mittag, Abend und für den Alltag — wechselt automatisch jeden Tag.</p>
+      </div>
+
+      <div class="today-section">
+        <h3>Tipp des Tages</h3>
+        <div id="tipOfDay"></div>
+      </div>
+
+      <div class="library-head">
+        <h3>Alle Tipps</h3>
+        <span id="tipsCount"></span>
+      </div>
+      <div class="recipe-grid" id="tipsGrid"></div>
+    </section>
+
+    <!-- ===== Calendar panel ===== -->
+    <section class="panel" id="panelCalendar">
+      <div class="recipes-head">
+        <h2>Kalender</h2>
+        <p>Übersicht über alle Tage, an denen du getrackt hast. Klicke auf einen Tag, um ihn im Tracker zu öffnen.</p>
+      </div>
+      <div class="cal-nav">
+        <button class="nav-btn" id="calPrevMonth" aria-label="Vorheriger Monat">‹</button>
+        <h3 id="calMonthLabel">—</h3>
+        <button class="nav-btn" id="calNextMonth" aria-label="Nächster Monat">›</button>
+      </div>
+      <div class="cal-legend">
+        <span><i class="dot dot-good"></i>Ziel erreicht</span>
+        <span><i class="dot dot-over"></i>Über Ziel</span>
+        <span><i class="dot dot-under"></i>Unter Ziel</span>
+        <span><i class="dot dot-none"></i>Keine Daten</span>
+      </div>
+      <div class="cal-grid-head">
+        <span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+      <p class="cal-loading" id="calLoading"></p>
+    </section>
+
+  </div>
+</div>
+
+<!-- Settings modal -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <h2>Tagesziele</h2>
+    <p class="sub">Diese Werte bestimmen dein Ring-Dashboard und die Fortschrittsbalken.</p>
+    <div class="field">
+      <label for="goalKcal">Kalorienziel (kcal)</label>
+      <input type="number" id="goalKcal" min="0" step="10">
+    </div>
+    <div class="field">
+      <label for="goalProtein">Protein (g)</label>
+      <input type="number" id="goalProtein" min="0" step="1">
+    </div>
+    <div class="field">
+      <label for="goalCarbs">Kohlenhydrate (g)</label>
+      <input type="number" id="goalCarbs" min="0" step="1">
+    </div>
+    <div class="field">
+      <label for="goalFat">Fett (g)</label>
+      <input type="number" id="goalFat" min="0" step="1">
+    </div>
+    <div class="field">
+      <label for="goalWater">Wasserziel (ml)</label>
+      <input type="number" id="goalWater" min="0" step="100">
+    </div>
+    <div class="modal-actions">
+      <button class="pill-btn" id="cancelGoals">Abbrechen</button>
+      <button class="add-submit" id="saveGoals">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var MEALS = [
+    {key:"fruehstueck", label:"Frühstück"},
+    {key:"mittag", label:"Mittagessen"},
+    {key:"abend", label:"Abendessen"},
+    {key:"snack", label:"Snacks"}
+  ];
+
+  var DEFAULT_GOALS = {kcal:2400, protein:150, carbs:270, fat:80, water:3000};
+
+  var RECIPES = [
+    // ---- Frühstück · süß ----
+    {
+      id:"f-suess-1", meal:"fruehstueck", type:"suess", icon:"🥜", color:"#FFE1D1",
+      title:"Erdnussbutter-Bananen-Overnight-Oats",
+      desc:"Cremige Haferflocken mit Erdnussbutter und Banane — perfekt vorbereitet für ein kalorienreiches Frühstück.",
+      kcal:650, protein:28, carbs:70, fat:26,
+      ingredients:["80 g Haferflocken","300 ml Vollmilch","2 EL Erdnussbutter","1 Banane","1 EL Honig","1 Prise Zimt"],
+      steps:["Haferflocken mit Milch und Honig vermengen und über Nacht im Kühlschrank quellen lassen.","Am Morgen die Banane in Scheiben schneiden und untermengen.","Erdnussbutter darüber verteilen und mit Zimt bestreuen."]
+    },
+    {
+      id:"f-suess-2", meal:"fruehstueck", type:"suess", icon:"🍯", color:"#FFF1D6",
+      title:"Beeren-Skyr-Porridge mit Honig und Walnüssen",
+      desc:"Warmes Porridge mit proteinreichem Skyr, frischen Beeren und gerösteten Walnüssen.",
+      kcal:580, protein:38, carbs:62, fat:18,
+      ingredients:["60 g Haferflocken","250 g Skyr","200 ml Milch","1 EL Honig","30 g Walnüsse","1 Handvoll Beeren"],
+      steps:["Haferflocken mit Milch aufkochen und zu Porridge einköcheln.","Skyr unterrühren, sobald das Porridge etwas abgekühlt ist.","Mit Beeren, Walnüssen und Honig toppen."]
+    },
+    {
+      id:"f-suess-3", meal:"fruehstueck", type:"suess", icon:"🥞", color:"#FFE8C2",
+      title:"Bananen-Hafer-Pfannkuchen mit Nussmus",
+      desc:"Fluffige Pfannkuchen aus Banane und Hafer, serviert mit cremigem Nussmus.",
+      kcal:610, protein:24, carbs:68, fat:24,
+      ingredients:["2 reife Bananen","3 Eier","60 g Haferflocken","1 TL Backpulver","2 EL Mandelmus","1 EL Ahornsirup"],
+      steps:["Bananen zerdrücken und mit Eiern, Haferflocken und Backpulver zu einem Teig verrühren.","Pfannkuchen portionsweise in einer Pfanne goldbraun backen.","Mit Mandelmus und Ahornsirup servieren."]
+    },
+    // ---- Frühstück · salzig ----
+    {
+      id:"f-salzig-1", meal:"fruehstueck", type:"salzig", icon:"🥑", color:"#DFF6E9",
+      title:"Rührei mit Avocado und Vollkornbrot",
+      desc:"Klassiker mit Format: cremiges Rührei, reife Avocado und herzhaftes Vollkornbrot.",
+      kcal:590, protein:28, carbs:40, fat:32,
+      ingredients:["3 Eier","1/2 Avocado","2 Scheiben Vollkornbrot","1 EL Butter","Salz, Pfeffer, Chiliflocken"],
+      steps:["Eier in Butter langsam unter Rühren zu cremigem Rührei stocken lassen.","Vollkornbrot toasten und mit zerdrückter Avocado bestreichen.","Rührei darauf anrichten und mit Chiliflocken bestreuen."]
+    },
+    {
+      id:"f-salzig-2", meal:"fruehstueck", type:"salzig", icon:"🧀", color:"#FFF1D6",
+      title:"Herzhafter Käse-Schinken-Omelett-Wrap",
+      desc:"Proteinreiches Omelett mit Schinken und Käse, gerollt im Vollkorn-Wrap.",
+      kcal:560, protein:34, carbs:30, fat:30,
+      ingredients:["3 Eier","2 Scheiben Kochschinken","40 g geriebener Käse","1 Vollkorn-Wrap","Paprika, Zwiebel"],
+      steps:["Eier verquirlen und in der Pfanne zu einem Omelett braten.","Schinken, Käse und angebratenes Gemüse auf dem Omelett verteilen.","Im Wrap einrollen und halbieren."]
+    },
+    {
+      id:"f-salzig-3", meal:"fruehstueck", type:"salzig", icon:"🥓", color:"#FFE1D1",
+      title:"Vollkorn-Sandwich mit Ei, Speck und Avocado",
+      desc:"Deftiges Sandwich mit Spiegelei, knusprigem Speck und cremiger Avocado.",
+      kcal:640, protein:30, carbs:42, fat:36,
+      ingredients:["2 Scheiben Vollkornbrot","2 Eier","3 Scheiben Speck","1/2 Avocado","Salz, Pfeffer"],
+      steps:["Speck knusprig anbraten und beiseitestellen.","Eier als Spiegelei in derselben Pfanne braten.","Brot toasten und mit Avocado, Speck und Ei belegen."]
+    },
+    // ---- Mittag · süß ----
+    {
+      id:"m-suess-1", meal:"mittag", type:"suess", icon:"🥥", color:"#DEEBFF",
+      title:"Süßkartoffel-Kokos-Curry mit Hähnchen",
+      desc:"Mild-süßes Curry mit Kokosmilch, Süßkartoffel und zartem Hähnchen.",
+      kcal:700, protein:40, carbs:60, fat:30,
+      ingredients:["200 g Hähnchenbrust","250 g Süßkartoffel","200 ml Kokosmilch","1 EL Currypaste","150 g Reis (gekocht)"],
+      steps:["Hähnchen würfeln und anbraten.","Süßkartoffel, Kokosmilch und Currypaste zugeben und 15 Minuten köcheln lassen.","Mit gekochtem Reis servieren."]
+    },
+    {
+      id:"m-suess-2", meal:"mittag", type:"suess", icon:"🍍", color:"#FFF1D6",
+      title:"Ananas-Hähnchen-Bowl mit Reis",
+      desc:"Fruchtig-süße Bowl mit gegrilltem Hähnchen, Ananas und Jasminreis.",
+      kcal:680, protein:42, carbs:74, fat:18,
+      ingredients:["200 g Hähnchenbrust","150 g frische Ananas","150 g Jasminreis (gekocht)","1 EL Sojasauce","1 TL Sesamöl"],
+      steps:["Hähnchen würfeln, mit Sojasauce marinieren und scharf anbraten.","Ananas in Stücken kurz mitbraten, bis sie leicht karamellisiert.","Auf Reis anrichten und mit Sesamöl beträufeln."]
+    },
+    {
+      id:"m-suess-3", meal:"mittag", type:"suess", icon:"🌰", color:"#FFE8C2",
+      title:"Bulgursalat mit Datteln, Feta und Walnüssen",
+      desc:"Sättigender Salat mit süßen Datteln, würzigem Feta und knackigen Walnüssen.",
+      kcal:620, protein:22, carbs:70, fat:26,
+      ingredients:["150 g Bulgur (trocken)","6 Datteln","80 g Feta","30 g Walnüsse","2 EL Olivenöl","Zitronensaft"],
+      steps:["Bulgur nach Packungsanweisung garen und abkühlen lassen.","Datteln klein schneiden, Feta zerbröckeln, Walnüsse grob hacken.","Alles vermengen und mit Olivenöl und Zitronensaft abschmecken."]
+    },
+    // ---- Mittag · salzig ----
+    {
+      id:"m-salzig-1", meal:"mittag", type:"salzig", icon:"🍝", color:"#FFE1E7",
+      title:"Cremige Hähnchen-Erdnuss-Pasta",
+      desc:"Vollkornnudeln mit Hähnchenbrust in einer cremigen Erdnusssauce — ein kalorien- und proteinreiches Hauptgericht.",
+      kcal:780, protein:48, carbs:72, fat:30,
+      ingredients:["120 g Vollkornnudeln","200 g Hähnchenbrust","2 EL Erdnussbutter","100 ml Kokosmilch","1 Knoblauchzehe","Sojasauce nach Geschmack"],
+      steps:["Nudeln nach Packungsanweisung kochen.","Hähnchen würfeln und mit Knoblauch scharf anbraten.","Erdnussbutter und Kokosmilch einrühren, kurz köcheln lassen und mit den Nudeln vermengen."]
+    },
+    {
+      id:"m-salzig-2", meal:"mittag", type:"salzig", icon:"🥑", color:"#DFF6E9",
+      title:"Rindergehacktes mit Süßkartoffel & Avocado",
+      desc:"Herzhaftes Bowl-Gericht mit viel Eiweiß aus Rinderhack und gesunden Fetten aus Avocado.",
+      kcal:720, protein:42, carbs:55, fat:34,
+      ingredients:["200 g Rinderhackfleisch","250 g Süßkartoffel","1/2 Avocado","1 EL Olivenöl","Paprika, Kreuzkümmel, Salz"],
+      steps:["Süßkartoffel würfeln und im Ofen bei 200 °C ca. 25 Minuten rösten.","Hackfleisch mit Gewürzen scharf anbraten.","Alles zusammen mit Avocadoscheiben in einer Bowl anrichten."]
+    },
+    {
+      id:"m-salzig-3", meal:"mittag", type:"salzig", icon:"🍅", color:"#FFE1D1",
+      title:"Linsen-Bolognese mit Vollkornnudeln und Parmesan",
+      desc:"Herzhafte, proteinreiche Bolognese aus Linsen und Rinderhack mit Vollkornnudeln.",
+      kcal:700, protein:36, carbs:82, fat:22,
+      ingredients:["120 g Vollkornnudeln","150 g Rinderhack","100 g rote Linsen","400 g stückige Tomaten","30 g Parmesan"],
+      steps:["Hack anbraten, Linsen und Tomaten zugeben und 15 Minuten köcheln lassen.","Nudeln parallel nach Packungsanweisung kochen.","Sauce über die Nudeln geben und mit Parmesan bestreuen."]
+    },
+    // ---- Abend · süß ----
+    {
+      id:"a-suess-1", meal:"abend", type:"suess", icon:"🍱", color:"#FFF1D6",
+      title:"Hähnchen-Teriyaki-Bowl mit Reis und Sesam",
+      desc:"Süßlich-glasiertes Hähnchen in Teriyaki-Sauce auf Reis, mit geröstetem Sesam.",
+      kcal:690, protein:46, carbs:68, fat:20,
+      ingredients:["200 g Hähnchenbrust","3 EL Teriyaki-Sauce","150 g Reis (gekocht)","1 TL Sesam","Frühlingszwiebel"],
+      steps:["Hähnchen würfeln und scharf anbraten.","Teriyaki-Sauce zugeben und kurz einkochen lassen, bis sie glänzt.","Über Reis anrichten und mit Sesam und Frühlingszwiebel bestreuen."]
+    },
+    {
+      id:"a-suess-2", meal:"abend", type:"suess", icon:"🍠", color:"#FFE8C2",
+      title:"Süßkartoffel-Ofengemüse mit Feta und Honig-Dressing",
+      desc:"Geröstete Süßkartoffel mit würzigem Feta und einem leicht süßen Honig-Dressing.",
+      kcal:640, protein:24, carbs:58, fat:32,
+      ingredients:["300 g Süßkartoffel","100 g Feta","1 EL Honig","2 EL Olivenöl","Rosmarin"],
+      steps:["Süßkartoffel würfeln, mit Öl und Rosmarin im Ofen bei 200 °C ca. 25 Minuten rösten.","Honig mit Olivenöl zu einem Dressing verrühren.","Süßkartoffel mit Feta bestreuen und mit dem Dressing beträufeln."]
+    },
+    {
+      id:"a-suess-3", meal:"abend", type:"suess", icon:"🎃", color:"#FFE1D1",
+      title:"Kürbis-Kokos-Risotto mit gerösteten Kürbiskernen",
+      desc:"Cremiges Risotto mit natürlicher Süße von Kürbis und Kokosmilch.",
+      kcal:660, protein:18, carbs:70, fat:30,
+      ingredients:["200 g Hokkaidokürbis","150 g Risottoreis","200 ml Kokosmilch","500 ml Gemüsebrühe","30 g Kürbiskerne"],
+      steps:["Kürbis würfeln und mit dem Risottoreis kurz andünsten.","Nach und nach Brühe und Kokosmilch angießen und cremig einkochen.","Mit gerösteten Kürbiskernen bestreuen."]
+    },
+    // ---- Abend · salzig ----
+    {
+      id:"a-salzig-1", meal:"abend", type:"salzig", icon:"🐟", color:"#FFE1D1",
+      title:"Lachs mit Quinoa und Olivenöl-Dressing",
+      desc:"Hochwertige Fette und Protein aus Lachs, kombiniert mit sättigendem Quinoa.",
+      kcal:690, protein:44, carbs:48, fat:34,
+      ingredients:["180 g Lachsfilet","80 g Quinoa (trocken)","1 EL Olivenöl","1/2 Zitrone","Frische Kräuter"],
+      steps:["Quinoa nach Packungsanweisung kochen.","Lachs in der Pfanne oder im Ofen ca. 12 Minuten garen.","Mit Olivenöl, Zitronensaft und Kräutern anrichten."]
+    },
+    {
+      id:"a-salzig-2", meal:"abend", type:"salzig", icon:"🥩", color:"#DFF6E9",
+      title:"Steak mit Ofenkartoffeln und Knoblauchbutter",
+      desc:"Deftiges Abendessen mit magerem Steak, knusprigen Ofenkartoffeln und Kräuterbutter.",
+      kcal:760, protein:50, carbs:50, fat:36,
+      ingredients:["200 g Rumpsteak","300 g Kartoffeln","1 EL Butter","1 Knoblauchzehe","frische Kräuter"],
+      steps:["Kartoffeln würfeln und im Ofen bei 200 °C ca. 30 Minuten rösten.","Steak scharf von beiden Seiten anbraten und kurz ruhen lassen.","Butter mit Knoblauch und Kräutern verrühren und über das Steak geben."]
+    },
+    {
+      id:"a-salzig-3", meal:"abend", type:"salzig", icon:"🫑", color:"#FFF1D6",
+      title:"Gefüllte Paprika mit Rinderhack und Käse",
+      desc:"Herzhaft gefüllte Paprika mit Rinderhack, Reis und überbackenem Käse.",
+      kcal:700, protein:44, carbs:40, fat:38,
+      ingredients:["2 große Paprika","200 g Rinderhack","100 g Reis (gekocht)","60 g geriebener Käse","1 Zwiebel"],
+      steps:["Hack mit Zwiebel anbraten und mit Reis vermengen.","Paprika halbieren, entkernen und mit der Masse füllen.","Mit Käse bestreuen und im Ofen bei 200 °C ca. 20 Minuten überbacken."]
+    }
+  ];
+
+  var MEAL_LABELS = {fruehstueck:"Frühstück", mittag:"Mittagessen", abend:"Abendessen"};
+
+  // Deterministischer "Tages-Index": ändert sich jeden Kalendertag, gleiche Auswahl für alle Nutzer am selben Tag.
+  function dayIndexFromKey(dateKey){
+    var parts = dateKey.split("-").map(Number);
+    return Math.floor(Date.UTC(parts[0], parts[1]-1, parts[2]) / 86400000);
+  }
+
+  // Wählt für einen Tag je Mahlzeit ein Rezept, wechselt zwischen süß/salzig und rotiert durch den Pool.
+  function pickDailyRecipes(dateKey){
+    var dayIdx = dayIndexFromKey(dateKey);
+    var types = {
+      fruehstueck: dayIdx % 2 === 0 ? "suess" : "salzig",
+      mittag: dayIdx % 2 === 0 ? "salzig" : "suess",           // ergänzt Frühstück immer gegensätzlich
+      abend: Math.floor(dayIdx / 2) % 2 === 0 ? "suess" : "salzig" // eigener, langsamerer Zyklus
+    };
+    var picks = {};
+    Object.keys(types).forEach(function(meal){
+      var type = types[meal];
+      var pool = RECIPES.filter(function(r){ return r.meal === meal && r.type === type; });
+      picks[meal] = pool[dayIdx % pool.length];
+    });
+    return picks;
+  }
+
+  // ---------- Ernährungstipps ----------
+  var TIPS = [
+    {id:"t1", icon:"💧", title:"Wasser zwischen den Mahlzeiten", text:"Trinke größere Mengen eher zwischen den Mahlzeiten als direkt davor — so wirst du nicht zu früh satt, um deine Kalorienziele zu erreichen."},
+    {id:"t2", icon:"🥜", title:"Kalorien clever verdichten", text:"Nüsse, Nussmus, Olivenöl und Avocado liefern viele Kalorien auf kleinem Raum — ideal, wenn große Portionen schwerfallen."},
+    {id:"t3", icon:"🍗", title:"Protein zu jeder Mahlzeit", text:"Baue bei Frühstück, Mittag und Abendessen eine Proteinquelle ein, statt nur eine große Portion am Tag zu essen."},
+    {id:"t4", icon:"🏋️", title:"Krafttraining nutzen", text:"Regelmäßiges Krafttraining sorgt dafür, dass ein Kalorienüberschuss eher in Muskelmasse statt in Fettmasse fließt."},
+    {id:"t5", icon:"😴", title:"Schlaf nicht unterschätzen", text:"Ausreichend Schlaf ist für Regeneration und Muskelaufbau mindestens so wichtig wie das Essen selbst."},
+    {id:"t6", icon:"🥤", title:"Kalorien mittrinken", text:"Ein Smoothie oder Milchshake liefert nebenbei viele Kalorien, ohne dass du dich extra satt essen musst."},
+    {id:"t7", icon:"🍽️", title:"Kleinere, häufigere Mahlzeiten", text:"Wenn drei große Portionen schwerfallen, verteile dieselbe Kalorienmenge auf vier bis fünf kleinere Mahlzeiten."},
+    {id:"t8", icon:"📝", title:"Konsequent tracken", text:"Führe dein Tagebuch auch an stressigen oder unregelmäßigen Tagen weiter — Konstanz zählt mehr als Perfektion."},
+    {id:"t9", icon:"🥦", title:"Gemüse nicht vergessen", text:"Auch im Kalorienüberschuss bleibt Gemüse wichtig — es liefert Vitamine, Ballaststoffe und hält dich langfristig fit."},
+    {id:"t10", icon:"🥛", title:"Vollfett statt fettarm", text:"Greif bei Milch, Joghurt und Käse ruhig zur Vollfett-Variante — das bringt zusätzliche Kalorien ohne mehr Volumen."},
+    {id:"t11", icon:"📅", title:"Mahlzeiten vorplanen", text:"Wer seine Mahlzeiten für den nächsten Tag grob plant, erreicht sein Kalorienziel deutlich zuverlässiger."},
+    {id:"t12", icon:"🥪", title:"Sinnvoll snacken", text:"Nüsse, Trockenfrüchte oder ein Proteinriegel zwischen den Mahlzeiten helfen, Kalorien nebenbei aufzunehmen."},
+    {id:"t13", icon:"🐟", title:"Proteinquellen abwechseln", text:"Wechsle zwischen tierischem und pflanzlichem Eiweiß — das sorgt für ein breiteres Aminosäureprofil."},
+    {id:"t14", icon:"⚖️", title:"Fortschritt breiter messen", text:"Verlasse dich nicht nur auf die Waage — Kraftzuwachs, Fotos und wie die Kleidung sitzt zeigen den Fortschritt oft ehrlicher."},
+    {id:"t15", icon:"🍚", title:"Sättigungsarme Kohlenhydrate", text:"Weißer Reis, Nudeln oder Weißbrot sättigen weniger als Vollkornvarianten — praktisch, wenn du schwer auf dein Kalorienziel kommst."},
+    {id:"t16", icon:"🍫", title:"Genuss einplanen", text:"Ein Stück Schokolade oder Dessert ist im Kalorienüberschuss völlig in Ordnung und hilft, das Ziel entspannter zu erreichen."},
+    {id:"t17", icon:"🥄", title:"Langsam essen", text:"Wer langsam isst und gründlich kaut, isst oft automatisch etwas mehr, bevor das Sättigungsgefühl einsetzt."},
+    {id:"t18", icon:"🎯", title:"Realistische Etappenziele", text:"Setz dir kleine Zwischenziele statt nur auf die Endzahl zu starren — das hält motiviert, wenn Fortschritt sich langsam anfühlt."}
+  ];
+
+  function pickDailyTip(dateKey){
+    var dayIdx = dayIndexFromKey(dateKey);
+    return TIPS[((dayIdx % TIPS.length) + TIPS.length) % TIPS.length];
+  }
+
+  // ---------- Lebensmittel-Datenbank (Werte pro 100 g) ----------
+  var FOOD_DB = [
+    {name:"Banane", kcal:89, protein:1.1, carbs:23, fat:0.3},
+    {name:"Apfel", kcal:52, protein:0.3, carbs:14, fat:0.2},
+    {name:"Haferflocken", kcal:372, protein:13, carbs:60, fat:7},
+    {name:"Reis (gekocht)", kcal:130, protein:2.7, carbs:28, fat:0.3},
+    {name:"Nudeln (gekocht)", kcal:158, protein:5.8, carbs:31, fat:0.9},
+    {name:"Hähnchenbrust (gegart)", kcal:165, protein:31, carbs:0, fat:3.6},
+    {name:"Rinderhackfleisch", kcal:254, protein:17, carbs:0, fat:20},
+    {name:"Lachs (gegart)", kcal:208, protein:20, carbs:0, fat:13},
+    {name:"Ei", kcal:155, protein:13, carbs:1.1, fat:11},
+    {name:"Milch (3,5%)", kcal:64, protein:3.4, carbs:4.8, fat:3.6},
+    {name:"Skyr", kcal:63, protein:11, carbs:4, fat:0.2},
+    {name:"Naturjoghurt", kcal:61, protein:3.5, carbs:4.7, fat:3.3},
+    {name:"Magerquark", kcal:67, protein:12, carbs:4, fat:0.2},
+    {name:"Gouda", kcal:356, protein:25, carbs:2.2, fat:27},
+    {name:"Butter", kcal:717, protein:0.9, carbs:0.1, fat:81},
+    {name:"Olivenöl", kcal:884, protein:0, carbs:0, fat:100},
+    {name:"Erdnussbutter", kcal:588, protein:25, carbs:20, fat:50},
+    {name:"Mandeln", kcal:579, protein:21, carbs:22, fat:50},
+    {name:"Walnüsse", kcal:654, protein:15, carbs:14, fat:65},
+    {name:"Vollkornbrot", kcal:216, protein:8, carbs:38, fat:3.3},
+    {name:"Toastbrot", kcal:265, protein:8, carbs:49, fat:3.3},
+    {name:"Kartoffel (gekocht)", kcal:87, protein:1.9, carbs:20, fat:0.1},
+    {name:"Süßkartoffel (gekocht)", kcal:90, protein:2, carbs:21, fat:0.1},
+    {name:"Brokkoli", kcal:34, protein:2.8, carbs:7, fat:0.4},
+    {name:"Tomate", kcal:18, protein:0.9, carbs:3.9, fat:0.2},
+    {name:"Gurke", kcal:15, protein:0.7, carbs:3.6, fat:0.1},
+    {name:"Avocado", kcal:160, protein:2, carbs:9, fat:15},
+    {name:"Honig", kcal:304, protein:0.3, carbs:82, fat:0},
+    {name:"Zucker", kcal:400, protein:0, carbs:100, fat:0},
+    {name:"Nutella", kcal:539, protein:6.3, carbs:57, fat:31},
+    {name:"Vollmilchschokolade", kcal:534, protein:7.6, carbs:58, fat:30},
+    {name:"Whey Proteinpulver", kcal:380, protein:75, carbs:8, fat:6},
+    {name:"Linsen (gekocht)", kcal:116, protein:9, carbs:20, fat:0.4},
+    {name:"Kidneybohnen (gekocht)", kcal:127, protein:8.7, carbs:22, fat:0.5},
+    {name:"Thunfisch (im eigenen Saft)", kcal:116, protein:26, carbs:0, fat:1},
+    {name:"Speck", kcal:541, protein:37, carbs:1.4, fat:42},
+    {name:"Kochschinken", kcal:105, protein:18, carbs:1, fat:3},
+    {name:"Paprika", kcal:31, protein:1, carbs:6, fat:0.3},
+    {name:"Zwiebel", kcal:40, protein:1.1, carbs:9, fat:0.1},
+    {name:"Karotte", kcal:41, protein:0.9, carbs:10, fat:0.2},
+    {name:"Spinat", kcal:23, protein:2.9, carbs:3.6, fat:0.4},
+    {name:"Feta", kcal:264, protein:14, carbs:4, fat:21},
+    {name:"Parmesan", kcal:392, protein:35, carbs:4, fat:26},
+    {name:"Quinoa (gekocht)", kcal:120, protein:4.4, carbs:21, fat:1.9},
+    {name:"Bulgur (gekocht)", kcal:83, protein:3, carbs:19, fat:0.2}
+  ];
+
+  function normalizeFoodName(s){ return String(s||"").trim().toLowerCase(); }
+  function findFood(name){
+    var n = normalizeFoodName(name);
+    if(!n) return null;
+    return FOOD_DB.find(function(f){ return normalizeFoodName(f.name) === n; }) || null;
+  }
+  function round1(n){ return Math.round(n*10)/10; }
+
+  var state = {
+    date: toDateKey(new Date()),
+    entries: [],
+    goals: DEFAULT_GOALS,
+    water: 0
+  };
+
+  var CIRC = 2 * Math.PI * 82;
+
+  var statusLine = document.getElementById("statusLine");
+  var dateHeading = document.getElementById("dateHeading");
+  var ringFill = document.getElementById("ringFill");
+  var ringVal = document.getElementById("ringVal");
+  var ringGoal = document.getElementById("ringGoal");
+  var ringSub = document.getElementById("ringSub");
+  var mealGroupsEl = document.getElementById("mealGroups");
+  var formMsg = document.getElementById("formMsg");
+
+  ringFill.style.strokeDasharray = CIRC;
+
+  function toDateKey(d){
+    var y = d.getFullYear();
+    var m = String(d.getMonth()+1).padStart(2,"0");
+    var day = String(d.getDate()).padStart(2,"0");
+    return y+"-"+m+"-"+day;
+  }
+  function dateFromKey(key){
+    var parts = key.split("-").map(Number);
+    return new Date(parts[0], parts[1]-1, parts[2]);
+  }
+  function shiftDate(key, delta){
+    var d = dateFromKey(key);
+    d.setDate(d.getDate()+delta);
+    return toDateKey(d);
+  }
+  function formatHeading(key){
+    var d = dateFromKey(key);
+    return d.toLocaleDateString("de-DE", {weekday:"short", day:"numeric", month:"short"});
+  }
+  function uid(){
+    return "e" + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+  }
+  function setStatus(text){ statusLine.textContent = text; }
+
+  // ---------- Storage ----------
+  // Nutzt localStorage (funktioniert auf jeder normalen Website, z. B. GitHub Pages).
+  // Fällt automatisch auf window.storage zurück, falls die App innerhalb eines Claude-Artefakts läuft.
+  var hasClaudeStorage = typeof window.storage !== "undefined";
+
+  async function storageGet(key){
+    if(hasClaudeStorage){
+      try{
+        var res = await window.storage.get(key, false);
+        return (res && res.value) ? res.value : null;
+      }catch(e){ return null; }
+    }
+    try{ return localStorage.getItem(key); }catch(e){ return null; }
+  }
+  async function storageSet(key, value){
+    if(hasClaudeStorage){
+      try{
+        var result = await window.storage.set(key, value, false);
+        return !!result;
+      }catch(e){ return false; }
+    }
+    try{ localStorage.setItem(key, value); return true; }catch(e){ return false; }
+  }
+  async function storageListKeys(prefix){
+    if(hasClaudeStorage){
+      try{
+        var res = await window.storage.list(prefix, false);
+        return (res && res.keys) || [];
+      }catch(e){ return []; }
+    }
+    try{
+      var keys = [];
+      for(var i=0; i<localStorage.length; i++){
+        var k = localStorage.key(i);
+        if(k && k.indexOf(prefix) === 0) keys.push(k);
+      }
+      return keys;
+    }catch(e){ return []; }
+  }
+
+  async function loadGoals(){
+    var raw = await storageGet("settings:goals");
+    if(raw){
+      try{ return Object.assign({}, DEFAULT_GOALS, JSON.parse(raw)); }catch(e){}
+    }
+    return DEFAULT_GOALS;
+  }
+  async function saveGoals(goals){
+    var ok = await storageSet("settings:goals", JSON.stringify(goals));
+    if(!ok) setStatus("Ziele konnten nicht gespeichert werden.");
+    return ok;
+  }
+  async function loadEntries(dateKey){
+    var raw = await storageGet("entries:"+dateKey);
+    if(raw){
+      try{ return JSON.parse(raw); }catch(e){}
+    }
+    return [];
+  }
+  async function saveEntries(dateKey, entries){
+    var ok = await storageSet("entries:"+dateKey, JSON.stringify(entries));
+    if(!ok) setStatus("Speichern fehlgeschlagen — bitte erneut versuchen.");
+    return ok;
+  }
+
+  async function loadWater(dateKey){
+    var raw = await storageGet("water:"+dateKey);
+    if(raw){
+      try{ return Number(JSON.parse(raw).ml) || 0; }catch(e){}
+    }
+    return 0;
+  }
+  async function saveWater(dateKey, ml){
+    var ok = await storageSet("water:"+dateKey, JSON.stringify({ml:ml}));
+    if(!ok) setStatus("Wasser konnte nicht gespeichert werden.");
+    return ok;
+  }
+
+  // ---------- Rendering: Tracker ----------
+  function totals(entries){
+    return entries.reduce(function(acc, e){
+      acc.kcal += Number(e.kcal)||0;
+      acc.protein += Number(e.protein)||0;
+      acc.carbs += Number(e.carbs)||0;
+      acc.fat += Number(e.fat)||0;
+      return acc;
+    }, {kcal:0, protein:0, carbs:0, fat:0});
+  }
+  function pct(value, goal){
+    if(!goal || goal <= 0) return 0;
+    return Math.min(100, (value/goal)*100);
+  }
+
+  function renderHeader(){
+    dateHeading.textContent = formatHeading(state.date);
+  }
+
+  function renderDashboard(){
+    var t = totals(state.entries);
+    var over = t.kcal > state.goals.kcal;
+
+    ringVal.textContent = Math.round(t.kcal);
+    ringVal.classList.toggle("over", over);
+    ringGoal.textContent = state.goals.kcal;
+
+    var ratio = pct(t.kcal, state.goals.kcal)/100;
+    ringFill.style.strokeDashoffset = CIRC * (1 - ratio);
+
+    var remaining = state.goals.kcal - t.kcal;
+    ringSub.classList.toggle("over", over);
+    if(remaining >= 0){
+      ringSub.innerHTML = "Noch <b>"+Math.round(remaining)+" kcal</b> übrig";
+    }else{
+      ringSub.innerHTML = "<b>"+Math.round(Math.abs(remaining))+" kcal</b> über dem Ziel";
+    }
+
+    setMacro("Protein", t.protein, state.goals.protein);
+    setMacro("Carbs", t.carbs, state.goals.carbs);
+    setMacro("Fat", t.fat, state.goals.fat);
+  }
+
+  function setMacro(key, value, goal){
+    document.getElementById("mv"+key).textContent = (Math.round(value*10)/10) + " g";
+    document.getElementById("mb"+key).style.width = pct(value, goal) + "%";
+    document.getElementById("mg"+key).textContent = "Ziel " + Math.round(goal) + " g";
+  }
+
+  function renderMealGroups(){
+    mealGroupsEl.innerHTML = "";
+    MEALS.forEach(function(meal){
+      var items = state.entries.filter(function(e){ return e.meal === meal.key; });
+      var group = document.createElement("div");
+      group.className = "meal-group";
+      var subtotal = items.reduce(function(s,e){ return s + (Number(e.kcal)||0); }, 0);
+
+      var head = document.createElement("div");
+      head.className = "meal-head";
+      head.innerHTML = "<h3>"+meal.label+"</h3><span class=\"subtotal\">"+Math.round(subtotal)+" kcal</span>";
+      group.appendChild(head);
+
+      if(items.length === 0){
+        var empty = document.createElement("p");
+        empty.className = "empty-note";
+        empty.textContent = "Noch keine Einträge.";
+        group.appendChild(empty);
+      }else{
+        items.forEach(function(entry){ group.appendChild(renderEntryRow(entry)); });
+      }
+      mealGroupsEl.appendChild(group);
+    });
+  }
+
+  function renderEntryRow(entry){
+    var row = document.createElement("div");
+    row.className = "entry-row";
+    var metaParts = [];
+    if(entry.portion) metaParts.push(entry.portion);
+    if(entry.protein) metaParts.push("P "+entry.protein+"g");
+    if(entry.carbs) metaParts.push("K "+entry.carbs+"g");
+    if(entry.fat) metaParts.push("F "+entry.fat+"g");
+
+    var main = document.createElement("div");
+    main.className = "entry-main";
+    main.innerHTML = "<span class=\"entry-name\"></span><span class=\"entry-meta\"></span>";
+    main.querySelector(".entry-name").textContent = entry.name;
+    main.querySelector(".entry-meta").textContent = metaParts.join(" · ");
+
+    var right = document.createElement("div");
+    right.className = "entry-right";
+    var kcalSpan = document.createElement("span");
+    kcalSpan.className = "entry-kcal";
+    kcalSpan.textContent = Math.round(Number(entry.kcal)||0) + " kcal";
+    var delBtn = document.createElement("button");
+    delBtn.className = "del-btn";
+    delBtn.setAttribute("aria-label", "Eintrag löschen: "+entry.name);
+    delBtn.textContent = "×";
+    delBtn.addEventListener("click", function(){ deleteEntry(entry.id); });
+
+    right.appendChild(kcalSpan);
+    right.appendChild(delBtn);
+    row.appendChild(main);
+    row.appendChild(right);
+    return row;
+  }
+
+  function renderWater(){
+    var goal = state.goals.water || DEFAULT_GOALS.water;
+    var ml = state.water;
+    var reached = ml >= goal;
+    document.getElementById("waterSub").textContent = ml + " / " + goal + " ml";
+    document.getElementById("waterBarFill").style.width = pct(ml, goal) + "%";
+    var praiseEl = document.getElementById("waterPraise");
+    praiseEl.textContent = reached ? "🎉 Gut gemacht! Tagesziel erreicht." : "";
+  }
+
+  function renderAll(){
+    renderHeader();
+    renderDashboard();
+    renderMealGroups();
+    renderWater();
+  }
+
+  async function switchDate(newKey){
+    state.date = newKey;
+    setStatus("Wird geladen …");
+    state.entries = await loadEntries(state.date);
+    state.water = await loadWater(state.date);
+    renderAll();
+    setStatus("Zuletzt gespeichert für " + formatHeading(state.date) + ".");
+  }
+
+  async function addWater(amountMl){
+    var wasReached = state.water >= (state.goals.water || DEFAULT_GOALS.water);
+    var next = Math.max(0, state.water + amountMl);
+    var ok = await saveWater(state.date, next);
+    if(ok){
+      state.water = next;
+      renderWater();
+      var nowReached = state.water >= (state.goals.water || DEFAULT_GOALS.water);
+      setStatus(nowReached && !wasReached ? "Wasserziel erreicht — gut gemacht!" : "Wasser gespeichert.");
+    }
+  }
+
+  async function addEntry(data){
+    var entry = {
+      id: uid(), name: data.name, portion: data.portion,
+      kcal: Number(data.kcal)||0, protein: Number(data.protein)||0,
+      carbs: Number(data.carbs)||0, fat: Number(data.fat)||0, meal: data.meal
+    };
+    var next = state.entries.concat([entry]);
+    var ok = await saveEntries(state.date, next);
+    if(ok){ state.entries = next; renderAll(); setStatus("Eintrag gespeichert."); }
+  }
+
+  async function deleteEntry(id){
+    var next = state.entries.filter(function(e){ return e.id !== id; });
+    var ok = await saveEntries(state.date, next);
+    if(ok){ state.entries = next; renderAll(); setStatus("Eintrag gelöscht."); }
+  }
+
+  // ---------- Recipes ----------
+  var recipeGrid = document.getElementById("recipeGrid");
+  var todayGrid = document.getElementById("todayGrid");
+  var libraryCount = document.getElementById("libraryCount");
+  var todayKey = toDateKey(new Date());
+
+  function buildRecipeCard(r, opts){
+    opts = opts || {};
+    var card = document.createElement("div");
+    card.className = opts.today ? "recipe-card today-card" : "recipe-card";
+
+    var top = document.createElement("div");
+    top.className = "recipe-top";
+    var icon = document.createElement("div");
+    icon.className = "recipe-icon";
+    icon.style.background = r.color;
+    icon.textContent = r.icon;
+    var textWrap = document.createElement("div");
+    var tagsHtml = "";
+    if(opts.today){
+      tagsHtml = "<div><span class=\"meal-tag\">"+MEAL_LABELS[r.meal]+"</span>"+
+        "<span class=\"type-tag "+r.type+"\">"+(r.type==="suess"?"Süß":"Salzig")+"</span></div>";
+    }
+    textWrap.innerHTML = tagsHtml + "<p class=\"recipe-title\"></p><p class=\"recipe-desc\"></p>";
+    textWrap.querySelector(".recipe-title").textContent = r.title;
+    textWrap.querySelector(".recipe-desc").textContent = r.desc;
+    top.appendChild(icon);
+    top.appendChild(textWrap);
+    card.appendChild(top);
+
+    var badges = document.createElement("div");
+    badges.className = "recipe-badges";
+    badges.innerHTML =
+      "<span class=\"badge kcal\">"+r.kcal+" kcal</span>"+
+      "<span class=\"badge protein\">P "+r.protein+"g</span>"+
+      "<span class=\"badge carbs\">K "+r.carbs+"g</span>"+
+      "<span class=\"badge fat\">F "+r.fat+"g</span>";
+    card.appendChild(badges);
+
+    var toggleBtn = document.createElement("button");
+    toggleBtn.className = "recipe-toggle";
+    toggleBtn.innerHTML = "Zutaten &amp; Zubereitung <span class=\"chev\">▾</span>";
+    card.appendChild(toggleBtn);
+
+    var detail = document.createElement("div");
+    detail.className = "recipe-detail";
+    var ingHtml = "<h4>Zutaten</h4><ul>" + r.ingredients.map(function(i){ return "<li>"+i+"</li>"; }).join("") + "</ul>";
+    var stepHtml = "<h4>Zubereitung</h4><ol>" + r.steps.map(function(s){ return "<li>"+s+"</li>"; }).join("") + "</ol>";
+    detail.innerHTML = ingHtml + stepHtml;
+
+    var addRow = document.createElement("div");
+    addRow.className = "recipe-add-row";
+    var select = document.createElement("select");
+    MEALS.forEach(function(m){
+      var opt = document.createElement("option");
+      opt.value = m.key; opt.textContent = m.label;
+      select.appendChild(opt);
+    });
+    select.value = r.meal || "mittag";
+    var addBtn = document.createElement("button");
+    addBtn.className = "recipe-add-btn";
+    addBtn.textContent = "Zum Tagebuch hinzufügen";
+    var addedNote = document.createElement("p");
+    addedNote.className = "recipe-added-note";
+
+    addBtn.addEventListener("click", async function(){
+      await addEntry({
+        name: r.title, portion: "1 Portion",
+        kcal: r.kcal, protein: r.protein, carbs: r.carbs, fat: r.fat,
+        meal: select.value
+      });
+      addedNote.textContent = "Zu \""+formatHeading(state.date)+"\" hinzugefügt ✓";
+    });
+
+    addRow.appendChild(select);
+    addRow.appendChild(addBtn);
+    detail.appendChild(addRow);
+    detail.appendChild(addedNote);
+    card.appendChild(detail);
+
+    toggleBtn.addEventListener("click", function(){
+      var isOpen = detail.classList.toggle("open");
+      toggleBtn.classList.toggle("open", isOpen);
+    });
+
+    return card;
+  }
+
+  function renderTodayPicks(){
+    todayGrid.innerHTML = "";
+    var picks = pickDailyRecipes(todayKey);
+    ["fruehstueck","mittag","abend"].forEach(function(meal){
+      var r = picks[meal];
+      if(r) todayGrid.appendChild(buildRecipeCard(r, {today:true}));
+    });
+  }
+
+  function renderRecipes(){
+    recipeGrid.innerHTML = "";
+    RECIPES.forEach(function(r){
+      recipeGrid.appendChild(buildRecipeCard(r, {today:false}));
+    });
+    libraryCount.textContent = RECIPES.length + " Rezepte";
+    renderTodayPicks();
+  }
+
+  // ---------- Tipps ----------
+  var tipOfDayEl = document.getElementById("tipOfDay");
+  var tipsGrid = document.getElementById("tipsGrid");
+  var tipsCount = document.getElementById("tipsCount");
+
+  function renderTips(){
+    var tip = pickDailyTip(todayKey);
+    tipOfDayEl.innerHTML =
+      "<div class=\"tip-hero\">"+
+        "<div class=\"tip-icon\">"+tip.icon+"</div>"+
+        "<div><h4></h4><p></p></div>"+
+      "</div>";
+    tipOfDayEl.querySelector("h4").textContent = tip.title;
+    tipOfDayEl.querySelector("p").textContent = tip.text;
+
+    tipsGrid.innerHTML = "";
+    TIPS.forEach(function(t){
+      var card = document.createElement("div");
+      card.className = "tip-card";
+      card.innerHTML = "<div class=\"tip-icon-sm\"></div><div><h4></h4><p></p></div>";
+      card.querySelector(".tip-icon-sm").textContent = t.icon;
+      card.querySelector("h4").textContent = t.title;
+      card.querySelector("p").textContent = t.text;
+      tipsGrid.appendChild(card);
+    });
+    tipsCount.textContent = TIPS.length + " Tipps";
+  }
+
+  // ---------- Kalender ----------
+  var calMonthLabel = document.getElementById("calMonthLabel");
+  var calGrid = document.getElementById("calGrid");
+  var calLoading = document.getElementById("calLoading");
+  var todayDateObj = new Date();
+  var calState = {year: todayDateObj.getFullYear(), month: todayDateObj.getMonth()};
+  var calCache = {};
+
+  function pad2(n){ return String(n).padStart(2,"0"); }
+
+  async function loadCalendarMonth(year, month){
+    var prefix = "entries:" + year + "-" + pad2(month+1);
+    var allKeys = await storageListKeys(prefix);
+    var toFetch = allKeys.filter(function(k){ return !(k in calCache); });
+    await Promise.all(toFetch.map(async function(key){
+      try{
+        var raw = await storageGet(key);
+        var list = raw ? JSON.parse(raw) : [];
+        calCache[key] = list.reduce(function(s,e){ return s + (Number(e.kcal)||0); }, 0);
+      }catch(e){
+        calCache[key] = null;
+      }
+    }));
+  }
+
+  function renderCalendarGrid(){
+    var year = calState.year, month = calState.month;
+    calMonthLabel.textContent = new Date(year, month, 1).toLocaleDateString("de-DE", {month:"long", year:"numeric"});
+    calGrid.innerHTML = "";
+
+    var firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7; // Montag = 0
+    var daysInMonth = new Date(year, month+1, 0).getDate();
+    var goal = state.goals.kcal || DEFAULT_GOALS.kcal;
+
+    for(var i=0; i<firstWeekday; i++){
+      var pad = document.createElement("div");
+      pad.className = "cal-cell cal-empty";
+      calGrid.appendChild(pad);
+    }
+
+    for(var d=1; d<=daysInMonth; d++){
+      var dateKey = year + "-" + pad2(month+1) + "-" + pad2(d);
+      var total = calCache["entries:"+dateKey];
+
+      var statusClass = "dot-none";
+      if(typeof total === "number" && total > 0){
+        if(total >= goal*0.9 && total <= goal*1.1) statusClass = "dot-good";
+        else if(total > goal*1.1) statusClass = "dot-over";
+        else statusClass = "dot-under";
+      }
+
+      var cell = document.createElement("button");
+      cell.type = "button";
+      cell.className = "cal-cell";
+      if(dateKey === todayKey) cell.classList.add("cal-today");
+      cell.setAttribute("aria-label", dateKey);
+
+      var kcalHtml = (typeof total === "number" && total > 0) ? "<span class=\"cal-kcal\">"+Math.round(total)+"</span>" : "";
+      cell.innerHTML = "<span class=\"cal-daynum\">"+d+"</span>" + kcalHtml + "<i class=\"dot "+statusClass+"\"></i>";
+      cell.addEventListener("click", (function(key){
+        return function(){ switchDate(key); showTab("tracker"); };
+      })(dateKey));
+
+      calGrid.appendChild(cell);
+    }
+  }
+
+  async function refreshCalendar(){
+    calLoading.textContent = "Lädt Kalenderdaten …";
+    await loadCalendarMonth(calState.year, calState.month);
+    renderCalendarGrid();
+    calLoading.textContent = "";
+  }
+
+  document.getElementById("calPrevMonth").addEventListener("click", function(){
+    calState.month--;
+    if(calState.month < 0){ calState.month = 11; calState.year--; }
+    refreshCalendar();
+  });
+  document.getElementById("calNextMonth").addEventListener("click", function(){
+    calState.month++;
+    if(calState.month > 11){ calState.month = 0; calState.year++; }
+    refreshCalendar();
+  });
+
+  // ---------- Tabs ----------
+  var TAB_DEFS = [
+    {key:"tracker", btn:document.getElementById("tabTrackerBtn"), panel:document.getElementById("panelTracker")},
+    {key:"recipes", btn:document.getElementById("tabRecipesBtn"), panel:document.getElementById("panelRecipes")},
+    {key:"tipps", btn:document.getElementById("tabTippsBtn"), panel:document.getElementById("panelTipps")},
+    {key:"calendar", btn:document.getElementById("tabCalendarBtn"), panel:document.getElementById("panelCalendar")}
+  ];
+
+  function showTab(name){
+    TAB_DEFS.forEach(function(t){
+      var active = t.key === name;
+      t.panel.classList.toggle("active", active);
+      t.btn.classList.toggle("active", active);
+      t.btn.setAttribute("aria-selected", active);
+    });
+    if(name === "calendar"){ refreshCalendar(); }
+  }
+  TAB_DEFS.forEach(function(t){
+    t.btn.addEventListener("click", function(){ showTab(t.key); });
+  });
+
+  // ---------- Events ----------
+  document.getElementById("prevDay").addEventListener("click", function(){ switchDate(shiftDate(state.date, -1)); });
+  document.getElementById("nextDay").addEventListener("click", function(){ switchDate(shiftDate(state.date, 1)); });
+  document.getElementById("todayBtn").addEventListener("click", function(){ switchDate(toDateKey(new Date())); });
+
+  // Datalist mit Lebensmittel-Datenbank befüllen
+  var foodDatalist = document.getElementById("foodDatalist");
+  FOOD_DB.forEach(function(f){
+    var opt = document.createElement("option");
+    opt.value = f.name;
+    foodDatalist.appendChild(opt);
+  });
+
+  var fNameEl = document.getElementById("fName");
+  var fAmountEl = document.getElementById("fAmount");
+  var fKcalEl = document.getElementById("fKcal");
+  var fProteinEl = document.getElementById("fProtein");
+  var fCarbsEl = document.getElementById("fCarbs");
+  var fFatEl = document.getElementById("fFat");
+  var foodMatchInfo = document.getElementById("foodMatchInfo");
+
+  function updateAutoCalc(){
+    var food = findFood(fNameEl.value);
+    var amount = parseFloat(fAmountEl.value);
+
+    if(food){
+      foodMatchInfo.classList.remove("unknown");
+      if(!isNaN(amount) && amount > 0){
+        var factor = amount / 100;
+        fKcalEl.value = Math.round(food.kcal * factor);
+        fProteinEl.value = round1(food.protein * factor);
+        fCarbsEl.value = round1(food.carbs * factor);
+        fFatEl.value = round1(food.fat * factor);
+        foodMatchInfo.textContent = "✓ " + food.name + " erkannt — Werte für " + amount + " g automatisch berechnet.";
+      }else{
+        foodMatchInfo.textContent = "✓ " + food.name + " erkannt — bitte noch die Menge in Gramm eingeben.";
+      }
+    }else if(fNameEl.value.trim()){
+      foodMatchInfo.classList.add("unknown");
+      foodMatchInfo.textContent = "ℹ️ Unbekanntes Lebensmittel — bitte Kcal, Protein, Carbs und Fett unten manuell eintragen.";
+    }else{
+      foodMatchInfo.classList.remove("unknown");
+      foodMatchInfo.textContent = "";
+    }
+  }
+  fNameEl.addEventListener("input", updateAutoCalc);
+  fAmountEl.addEventListener("input", updateAutoCalc);
+
+  document.getElementById("addForm").addEventListener("submit", function(ev){
+    ev.preventDefault();
+    var name = fNameEl.value.trim();
+    var kcal = fKcalEl.value;
+    if(!name || kcal === ""){
+      formMsg.textContent = "Bitte Name und Kalorien angeben (bei unbekannten Lebensmitteln manuell eintragen).";
+      return;
+    }
+    formMsg.textContent = "";
+    var amount = fAmountEl.value;
+    addEntry({
+      name: name,
+      portion: amount ? (amount + " g") : "",
+      kcal: kcal,
+      protein: fProteinEl.value,
+      carbs: fCarbsEl.value,
+      fat: fFatEl.value,
+      meal: document.getElementById("fMeal").value
+    });
+    this.reset();
+    foodMatchInfo.textContent = "";
+    foodMatchInfo.classList.remove("unknown");
+    fNameEl.focus();
+  });
+
+  document.querySelectorAll(".water-qty-btn").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      addWater(Number(btn.getAttribute("data-amt")));
+    });
+  });
+  document.getElementById("waterResetBtn").addEventListener("click", async function(){
+    var ok = await saveWater(state.date, 0);
+    if(ok){ state.water = 0; renderWater(); setStatus("Wasser zurückgesetzt."); }
+  });
+
+  var modalBackdrop = document.getElementById("modalBackdrop");
+  function openModal(){
+    document.getElementById("goalKcal").value = state.goals.kcal;
+    document.getElementById("goalProtein").value = state.goals.protein;
+    document.getElementById("goalCarbs").value = state.goals.carbs;
+    document.getElementById("goalFat").value = state.goals.fat;
+    document.getElementById("goalWater").value = state.goals.water || DEFAULT_GOALS.water;
+    modalBackdrop.classList.add("open");
+  }
+  function closeModal(){ modalBackdrop.classList.remove("open"); }
+  document.getElementById("settingsBtn").addEventListener("click", openModal);
+  document.getElementById("cancelGoals").addEventListener("click", closeModal);
+  modalBackdrop.addEventListener("click", function(ev){ if(ev.target === modalBackdrop) closeModal(); });
+  document.getElementById("saveGoals").addEventListener("click", async function(){
+    var newGoals = {
+      kcal: Number(document.getElementById("goalKcal").value)||0,
+      protein: Number(document.getElementById("goalProtein").value)||0,
+      carbs: Number(document.getElementById("goalCarbs").value)||0,
+      fat: Number(document.getElementById("goalFat").value)||0,
+      water: Number(document.getElementById("goalWater").value)||0
+    };
+    var ok = await saveGoals(newGoals);
+    if(ok){ state.goals = newGoals; renderAll(); closeModal(); setStatus("Ziele aktualisiert."); }
+  });
+
+  // ---------- Theme (Hell/Dunkel) ----------
+  var themeRoot = document.querySelector(".tracker-root");
+  var themeToggleBtn = document.getElementById("themeToggle");
+
+  function applyTheme(theme){
+    themeRoot.setAttribute("data-theme", theme);
+    themeToggleBtn.textContent = theme === "dark" ? "☀️" : "🌙";
+    themeToggleBtn.setAttribute("aria-label", theme === "dark" ? "Zum hellen Modus wechseln" : "Zum dunklen Modus wechseln");
+  }
+  async function loadTheme(){
+    var raw = await storageGet("settings:theme");
+    return raw || "light";
+  }
+  async function saveTheme(theme){
+    await storageSet("settings:theme", theme);
+  }
+  themeToggleBtn.addEventListener("click", async function(){
+    var next = themeRoot.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    applyTheme(next);
+    await saveTheme(next);
+  });
+
+  (async function init(){
+    setStatus("Wird geladen …");
+    applyTheme(await loadTheme());
+    state.goals = await loadGoals();
+    state.entries = await loadEntries(state.date);
+    state.water = await loadWater(state.date);
+    renderAll();
+    renderRecipes();
+    renderTips();
+    setStatus("Bereit. Deine Einträge werden automatisch gespeichert.");
+  })();
+})();
+</script>
+</body>
+</html>
