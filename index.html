@@ -906,62 +906,81 @@
   function setStatus(text){ statusLine.textContent = text; }
 
   // ---------- Storage ----------
-  async function loadGoals(){
+  // Nutzt localStorage (funktioniert auf jeder normalen Website, z. B. GitHub Pages).
+  // Fällt automatisch auf window.storage zurück, falls die App innerhalb eines Claude-Artefakts läuft.
+  var hasClaudeStorage = typeof window.storage !== "undefined";
+
+  async function storageGet(key){
+    if(hasClaudeStorage){
+      try{
+        var res = await window.storage.get(key, false);
+        return (res && res.value) ? res.value : null;
+      }catch(e){ return null; }
+    }
+    try{ return localStorage.getItem(key); }catch(e){ return null; }
+  }
+  async function storageSet(key, value){
+    if(hasClaudeStorage){
+      try{
+        var result = await window.storage.set(key, value, false);
+        return !!result;
+      }catch(e){ return false; }
+    }
+    try{ localStorage.setItem(key, value); return true; }catch(e){ return false; }
+  }
+  async function storageListKeys(prefix){
+    if(hasClaudeStorage){
+      try{
+        var res = await window.storage.list(prefix, false);
+        return (res && res.keys) || [];
+      }catch(e){ return []; }
+    }
     try{
-      var res = await window.storage.get("settings:goals", false);
-      if(res && res.value){
-        return Object.assign({}, DEFAULT_GOALS, JSON.parse(res.value));
+      var keys = [];
+      for(var i=0; i<localStorage.length; i++){
+        var k = localStorage.key(i);
+        if(k && k.indexOf(prefix) === 0) keys.push(k);
       }
-    }catch(e){}
+      return keys;
+    }catch(e){ return []; }
+  }
+
+  async function loadGoals(){
+    var raw = await storageGet("settings:goals");
+    if(raw){
+      try{ return Object.assign({}, DEFAULT_GOALS, JSON.parse(raw)); }catch(e){}
+    }
     return DEFAULT_GOALS;
   }
   async function saveGoals(goals){
-    try{
-      var result = await window.storage.set("settings:goals", JSON.stringify(goals), false);
-      if(!result) throw new Error("no result");
-      return true;
-    }catch(e){
-      setStatus("Ziele konnten nicht gespeichert werden.");
-      return false;
-    }
+    var ok = await storageSet("settings:goals", JSON.stringify(goals));
+    if(!ok) setStatus("Ziele konnten nicht gespeichert werden.");
+    return ok;
   }
   async function loadEntries(dateKey){
-    try{
-      var res = await window.storage.get("entries:"+dateKey, false);
-      if(res && res.value){ return JSON.parse(res.value); }
-    }catch(e){}
+    var raw = await storageGet("entries:"+dateKey);
+    if(raw){
+      try{ return JSON.parse(raw); }catch(e){}
+    }
     return [];
   }
   async function saveEntries(dateKey, entries){
-    try{
-      var result = await window.storage.set("entries:"+dateKey, JSON.stringify(entries), false);
-      if(!result) throw new Error("no result");
-      return true;
-    }catch(e){
-      setStatus("Speichern fehlgeschlagen — bitte erneut versuchen.");
-      return false;
-    }
+    var ok = await storageSet("entries:"+dateKey, JSON.stringify(entries));
+    if(!ok) setStatus("Speichern fehlgeschlagen — bitte erneut versuchen.");
+    return ok;
   }
 
   async function loadWater(dateKey){
-    try{
-      var res = await window.storage.get("water:"+dateKey, false);
-      if(res && res.value){
-        var parsed = JSON.parse(res.value);
-        return Number(parsed.ml)||0;
-      }
-    }catch(e){}
+    var raw = await storageGet("water:"+dateKey);
+    if(raw){
+      try{ return Number(JSON.parse(raw).ml) || 0; }catch(e){}
+    }
     return 0;
   }
   async function saveWater(dateKey, ml){
-    try{
-      var result = await window.storage.set("water:"+dateKey, JSON.stringify({ml:ml}), false);
-      if(!result) throw new Error("no result");
-      return true;
-    }catch(e){
-      setStatus("Wasser konnte nicht gespeichert werden.");
-      return false;
-    }
+    var ok = await storageSet("water:"+dateKey, JSON.stringify({ml:ml}));
+    if(!ok) setStatus("Wasser konnte nicht gespeichert werden.");
+    return ok;
   }
 
   // ---------- Rendering: Tracker ----------
@@ -1272,17 +1291,12 @@
 
   async function loadCalendarMonth(year, month){
     var prefix = "entries:" + year + "-" + pad2(month+1);
-    var allKeys = [];
-    try{
-      var res = await window.storage.list("entries:", false);
-      allKeys = (res && res.keys) || [];
-    }catch(e){ allKeys = []; }
-    var matching = allKeys.filter(function(k){ return k.indexOf(prefix) === 0; });
-    var toFetch = matching.filter(function(k){ return !(k in calCache); });
+    var allKeys = await storageListKeys(prefix);
+    var toFetch = allKeys.filter(function(k){ return !(k in calCache); });
     await Promise.all(toFetch.map(async function(key){
       try{
-        var r = await window.storage.get(key, false);
-        var list = r && r.value ? JSON.parse(r.value) : [];
+        var raw = await storageGet(key);
+        var list = raw ? JSON.parse(raw) : [];
         calCache[key] = list.reduce(function(s,e){ return s + (Number(e.kcal)||0); }, 0);
       }catch(e){
         calCache[key] = null;
@@ -1442,14 +1456,11 @@
     themeToggleBtn.setAttribute("aria-label", theme === "dark" ? "Zum hellen Modus wechseln" : "Zum dunklen Modus wechseln");
   }
   async function loadTheme(){
-    try{
-      var res = await window.storage.get("settings:theme", false);
-      if(res && res.value) return res.value;
-    }catch(e){}
-    return "light";
+    var raw = await storageGet("settings:theme");
+    return raw || "light";
   }
   async function saveTheme(theme){
-    try{ await window.storage.set("settings:theme", theme, false); }catch(e){}
+    await storageSet("settings:theme", theme);
   }
   themeToggleBtn.addEventListener("click", async function(){
     var next = themeRoot.getAttribute("data-theme") === "dark" ? "light" : "dark";
